@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import CreatableSelect from "react-select/creatable";
-import { MultiValue, ActionMeta } from "react-select";
+import { MultiValue } from "react-select";
 import { v4 as uuidv4 } from "uuid";
 
 // Define the type for tags
@@ -56,7 +56,7 @@ const Form: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-200 p-6 md:p-10">
+    <div className="min-h-screen w-screen bg-gradient-to-br from-blue-100 to-blue-200 p-6 md:p-10">
       <h2 className="text-4xl font-bold mb-8 text-blue-700 text-center md:text-left">
         Create New Note
       </h2>
@@ -81,9 +81,7 @@ const Form: React.FC = () => {
           <CreatableSelect
             isMulti
             value={tags}
-            onChange={(newValue, actionMeta: ActionMeta<TagOption>) =>
-              setTags(newValue)
-            }
+            onChange={(newValue) => setTags(newValue)}
             onCreateOption={handleCreateTag}
             placeholder="Select or create tags"
             classNamePrefix="select"

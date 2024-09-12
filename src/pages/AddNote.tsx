@@ -1,7 +1,7 @@
 import React from "react";
-import Form from "./Form";
+import Form from "../components/Form";
 
-const AddNote = () => {
+const AddNote: React.FC = () => {
   return (
     <div>
       <Form />
