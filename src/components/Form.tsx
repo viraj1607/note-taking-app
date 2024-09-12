@@ -1,28 +1,58 @@
-import React, { useState } from 'react';
-import CreatableSelect from 'react-select/creatable';
-import { MultiValue } from 'react-select';
+import React, { useState } from "react";
+import CreatableSelect from "react-select/creatable";
+import { MultiValue, ActionMeta } from "react-select";
+import { v4 as uuidv4 } from "uuid";
 
 // Define the type for tags
 interface TagOption {
   value: string;
-  label: string;
+  id: string;
+  label:string
+}
+
+interface NoteData {
+  title: string;
+  description: string;
+  tagIds: string[];
 }
 
 const Form: React.FC = () => {
-  const [title, setTitle] = useState<string>('');
+  const [title, setTitle] = useState<string>("");
   const [tags, setTags] = useState<MultiValue<TagOption>>([]);
-  const [description, setDescription] = useState<string>('');
+  const [description, setDescription] = useState<string>("");
+  const [formDataArr, setFormDataArr] = useState<NoteData[]>([]);
 
   const handleSave = () => {
     // Add save logic here
     console.log({ title, tags, description });
+    const tagIds = tags.map((tag) => tag.id);
+    const newEntry: NoteData = { title, tagIds: tagIds, description };
+    const updatedArray = [...formDataArr, newEntry];
+
+    setFormDataArr(updatedArray);
+    localStorage.setItem("NoteData", JSON.stringify(updatedArray));
+
+    console.log(updatedArray);
+    alert("Data saved successfully!");
+
+    // Clear form fields after saving
+    setTitle("");
+    setTags([]);
+    setDescription("");
   };
 
   const handleCancel = () => {
     // Clear form fields
-    setTitle('');
+    setTitle("");
     setTags([]);
-    setDescription('');
+    setDescription("");
+  };
+
+  const handleCreateTag = (inputValue: string) => {
+    // Create a new tag with a unique ID using uuidv4
+    console.log(tags)
+    const newTag: TagOption = { value: inputValue, id: uuidv4(),label:inputValue };
+    setTags((prevTags) => [...prevTags, newTag]);
   };
 
   return (
@@ -51,17 +81,20 @@ const Form: React.FC = () => {
           <CreatableSelect
             isMulti
             value={tags}
-            onChange={(newValue) => setTags(newValue)}
+            onChange={(newValue, actionMeta: ActionMeta<TagOption>) =>
+              setTags(newValue)
+            }
+            onCreateOption={handleCreateTag}
             placeholder="Select or create tags"
             classNamePrefix="select"
             styles={{
               control: (base) => ({
                 ...base,
-                padding: '0.5rem',
-                borderRadius: '0.5rem',
-                borderColor: '#cbd5e1',
-                '&:hover': { borderColor: '#60a5fa' },
-                boxShadow: 'none',
+                padding: "0.5rem",
+                borderRadius: "0.5rem",
+                borderColor: "#cbd5e1",
+                "&:hover": { borderColor: "#60a5fa" },
+                boxShadow: "none",
               }),
             }}
           />
