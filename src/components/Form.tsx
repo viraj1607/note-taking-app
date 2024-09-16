@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import CreatableSelect from "react-select/creatable";
 import { MultiValue } from "react-select";
 import { v4 as uuidv4 } from "uuid";
+import { Link } from "react-router-dom";
 
 // Define the type for tags
 interface TagOption {
   value: string;
   id: string;
-  label:string
+  label: string;
 }
 
 interface NoteData {
@@ -50,8 +51,12 @@ const Form: React.FC = () => {
 
   const handleCreateTag = (inputValue: string) => {
     // Create a new tag with a unique ID using uuidv4
-    console.log(tags)
-    const newTag: TagOption = { value: inputValue, id: uuidv4(),label:inputValue };
+    console.log(tags);
+    const newTag: TagOption = {
+      value: inputValue,
+      id: uuidv4(),
+      label: inputValue,
+    };
     setTags((prevTags) => [...prevTags, newTag]);
   };
 
@@ -120,12 +125,14 @@ const Form: React.FC = () => {
         >
           Save
         </button>
-        <button
-          onClick={handleCancel}
-          className="w-full md:w-auto px-8 py-4 bg-gray-300 text-gray-700 rounded-lg shadow-lg hover:bg-gray-400 focus:ring-4 focus:ring-gray-200 focus:outline-none transition transform hover:scale-105"
-        >
-          Cancel
-        </button>
+        <Link to="/">
+          <button
+            onClick={handleCancel}
+            className="w-full md:w-auto px-8 py-4 bg-gray-300 text-gray-700 rounded-lg shadow-lg hover:bg-gray-400 focus:ring-4 focus:ring-gray-200 focus:outline-none transition transform hover:scale-105"
+          >
+            Cancel
+          </button>
+        </Link>
       </div>
     </div>
   );
