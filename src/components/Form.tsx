@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import CreatableSelect from "react-select/creatable";
 import { MultiValue } from "react-select";
 import { v4 as uuidv4 } from "uuid";
-import { Link } from "react-router-dom";
+import { collection, addDoc, getDocs } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
 // Define the type for tags
 interface TagOption {
@@ -21,43 +22,78 @@ const Form: React.FC = () => {
   const [title, setTitle] = useState<string>("");
   const [tags, setTags] = useState<MultiValue<TagOption>>([]);
   const [description, setDescription] = useState<string>("");
-  const [formDataArr, setFormDataArr] = useState<NoteData[]>([]);
+  // const [formDataArr, setFormDataArr] = useState<NoteData[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagOption[]>([]); // State for storing fetched tags
 
-  const handleSave = () => {
-    // Add save logic here
-    console.log({ title, tags, description });
-    const tagIds = tags.map((tag) => tag.id);
-    const newEntry: NoteData = { title, tagIds: tagIds, description };
-    const updatedArray = [...formDataArr, newEntry];
+  // Fetch tags from Firestore when the component mounts
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "tags"));
+        const tagsData: TagOption[] = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          value: doc.data().label,
+          label: doc.data().label,
+        }));
+        setAvailableTags(tagsData);
+      } catch (error) {
+        console.error("Error fetching tags: ", error);
+      }
+    };
 
-    setFormDataArr(updatedArray);
-    localStorage.setItem("NoteData", JSON.stringify(updatedArray));
-    localStorage.setItem("Tags",JSON.stringify(tags))
-    console.log(updatedArray);
-    alert("Data saved successfully!");
+    fetchTags();
+  }, []);
 
-    // Clear form fields after saving
-    setTitle("");
-    setTags([]);
-    setDescription("");
+  const handleSave = async () => {
+    const simplifiedTags = tags.map((tag) => ({
+      id: tag.id,
+      label: tag.label,
+    }));
+
+    const newEntry = {
+      title,
+      tags: simplifiedTags,
+      description,
+    };
+
+    try {
+      // Save the note to Firestore
+      await addDoc(collection(db, "notes"), newEntry);
+      // await addDoc(collection(db, "tags"), tags);
+      alert("Data saved successfully to Firestore!");
+
+      // Clear form fields after saving
+      setTitle("");
+      setTags([]);
+      setDescription("");
+    } catch (error) {
+      console.error("Error saving document: ", error);
+      alert("Failed to save data to Firestore.");
+    }
   };
 
   const handleCancel = () => {
-    // Clear form fields
     setTitle("");
     setTags([]);
     setDescription("");
   };
 
-  const handleCreateTag = (inputValue: string) => {
-    // Create a new tag with a unique ID using uuidv4
-    console.log(tags);
+  const handleCreateTag = async (inputValue: string) => {
     const newTag: TagOption = {
       value: inputValue,
       id: uuidv4(),
       label: inputValue,
     };
-    setTags((prevTags) => [...prevTags, newTag]);
+
+    try {
+      // Save the new tag to Firestore
+      await addDoc(collection(db, "tags"), { label: inputValue });
+      // Add the new tag to the dropdown options
+      setAvailableTags((prevTags) => [...prevTags, newTag]);
+      setTags((prevTags) => [...prevTags, newTag]);
+    } catch (error) {
+      console.error("Error adding new tag: ", error);
+    }
   };
 
   return (
@@ -66,9 +102,7 @@ const Form: React.FC = () => {
         Create New Note
       </h2>
 
-      {/* Title and Tags side by side */}
       <div className="flex flex-col md:flex-row gap-8 mb-8">
-        {/* Title Input */}
         <div className="flex-1">
           <label className="block text-gray-800 font-medium mb-2">Title</label>
           <input
@@ -88,6 +122,7 @@ const Form: React.FC = () => {
             value={tags}
             onChange={(newValue) => setTags(newValue)}
             onCreateOption={handleCreateTag}
+            options={availableTags} // Use available tags as options
             placeholder="Select or create tags"
             classNamePrefix="select"
             styles={{
@@ -104,7 +139,6 @@ const Form: React.FC = () => {
         </div>
       </div>
 
-      {/* Description Text Area */}
       <div className="mb-8">
         <label className="block text-gray-800 font-medium mb-2">
           Description
@@ -117,7 +151,6 @@ const Form: React.FC = () => {
         />
       </div>
 
-      {/* Save and Cancel Buttons */}
       <div className="flex flex-col md:flex-row gap-4">
         <button
           onClick={handleSave}
@@ -125,14 +158,12 @@ const Form: React.FC = () => {
         >
           Save
         </button>
-        <Link to="/">
-          <button
-            onClick={handleCancel}
-            className="w-full md:w-auto px-8 py-4 bg-gray-300 text-gray-700 rounded-lg shadow-lg hover:bg-gray-400 focus:ring-4 focus:ring-gray-200 focus:outline-none transition transform hover:scale-105"
-          >
-            Cancel
-          </button>
-        </Link>
+        <button
+          onClick={handleCancel}
+          className="w-full md:w-auto px-8 py-4 bg-gray-300 text-gray-700 rounded-lg shadow-lg hover:bg-gray-400 focus:ring-4 focus:ring-gray-200 focus:outline-none transition transform hover:scale-105"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
