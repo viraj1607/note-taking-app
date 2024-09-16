@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CreatableSelect, { MultiValue } from "react-select";
+import { collection, getDocs } from "firebase/firestore"; // Firestore imports
+import { db } from "../firebaseConfig";
 
 // Define the types for tags and notes
 interface TagOption {
@@ -10,9 +12,10 @@ interface TagOption {
 }
 
 interface NoteData {
+  id: string;
   title: string;
   description: string;
-  tagIds: string[];
+  tags: TagOption[];
 }
 
 const ShowNotes: React.FC = () => {
@@ -20,12 +23,24 @@ const ShowNotes: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
   const [notes, setNotes] = useState<NoteData[]>([]);
 
-  // Fetch notes from localStorage
+  // Fetch notes from Firestore on component mount
   useEffect(() => {
-    const storedNotes = localStorage.getItem("NoteData");
-    if (storedNotes) {
-      setNotes(JSON.parse(storedNotes));
-    }
+    const fetchNotes = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "notes"));
+        const notesData: NoteData[] = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as NoteData[];
+
+        setNotes(notesData);
+        console.log(notesData)
+      } catch (error) {
+        console.error("Error fetching notes: ", error);
+      }
+    };
+
+    fetchNotes();
   }, []);
 
   // Handle search by title
@@ -34,17 +49,17 @@ const ShowNotes: React.FC = () => {
   };
 
   // Filter notes based on search title and selected tags
-  const filteredNotes = notes.filter((note) => {
-    const matchesTitle = note.title
-      .toLowerCase()
-      .includes(searchTitle.toLowerCase());
+  // const filteredNotes = notes.filter((note) => {
+  //   const matchesTitle = note.title
+  //     .toLowerCase()
+  //     .includes(searchTitle.toLowerCase());
 
-    const matchesTags =
-      selectedTags.length === 0 ||
-      selectedTags.every((tag) => note.tagIds.includes(tag.id));
+  //   const matchesTags =
+  //     selectedTags.length === 0 ||
+  //     selectedTags.every((tag) => note.tagIds.includes(tag.id));
 
-    return matchesTitle && matchesTags;
-  });
+  //   return matchesTitle && matchesTags;
+  // });
 
   return (
     <div className="min-h-screen w-screen p-6 md:p-10">
@@ -96,16 +111,14 @@ const ShowNotes: React.FC = () => {
 
       {/* Notes List with Responsive Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredNotes.map((note, index) => (
+        {notes.map((note) => (
           <div
-            key={index}
+            key={note.id}
             className="p-4 bg-white rounded-lg shadow-lg border border-gray-300"
           >
             <h3 className="text-2xl font-semibold mb-2">{note.title}</h3>
             <div className="flex flex-wrap gap-2 mb-2">
-              {/* Display tags */}
-              {note.tagIds.map((tagId) => {
-                const tag = selectedTags.find((tag) => tag.id === tagId);
+              {note.tags.map((tag) => {
                 return (
                   tag && (
                     <span

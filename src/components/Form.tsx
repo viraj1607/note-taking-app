@@ -12,11 +12,11 @@ interface TagOption {
   label: string;
 }
 
-interface NoteData {
-  title: string;
-  description: string;
-  tagIds: string[];
-}
+// interface NoteData {
+//   title: string;
+//   description: string;
+//   tagIds: string[];
+// }
 
 const Form: React.FC = () => {
   const [title, setTitle] = useState<string>("");
