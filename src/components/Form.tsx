@@ -32,7 +32,7 @@ const Form: React.FC = () => {
 
     setFormDataArr(updatedArray);
     localStorage.setItem("NoteData", JSON.stringify(updatedArray));
-
+    localStorage.setItem("Tags",JSON.stringify(tags))
     console.log(updatedArray);
     alert("Data saved successfully!");
 
