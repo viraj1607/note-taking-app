@@ -22,44 +22,66 @@ const ShowNotes: React.FC = () => {
   const [searchTitle, setSearchTitle] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
   const [notes, setNotes] = useState<NoteData[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagOption[]>([]); // Store fetched tags
+  const [filteredNotes, setFilteredNotes] = useState<NoteData[]>([]); // Filtered notes
 
-  // Fetch notes from Firestore on component mount
+  // Fetch notes and tags from Firestore on component mount
   useEffect(() => {
-    const fetchNotes = async () => {
+    const fetchNotesAndTags = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "notes"));
-        const notesData: NoteData[] = querySnapshot.docs.map((doc) => ({
+        // Fetch notes
+        const notesSnapshot = await getDocs(collection(db, "notes"));
+        const notesData: NoteData[] = notesSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as NoteData[];
 
         setNotes(notesData);
-        console.log(notesData)
+
+        // Fetch tags
+        const tagsSnapshot = await getDocs(collection(db, "tags")); // Assuming you have a 'tags' collection
+        const tagsData: TagOption[] = tagsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          value: doc.id,
+          label: doc.data().label,
+        }));
+
+        setAvailableTags(tagsData); // Set available tags in the dropdown
       } catch (error) {
-        console.error("Error fetching notes: ", error);
+        console.error("Error fetching data: ", error);
       }
     };
 
-    fetchNotes();
+    fetchNotesAndTags();
   }, []);
 
-  // Handle search by title
-  const handleSearchTitle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTitle(e.target.value);
+  // Function to filter notes based on title and tags
+  const filterNotes = () => {
+    let filtered = notes;
+
+    // Filter by title
+    if (searchTitle.trim() !== "") {
+      filtered = filtered.filter((note) =>
+        note.title.toLowerCase().includes(searchTitle.toLowerCase())
+      );
+    }
+
+    // Filter by tags
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((note) =>
+        selectedTags.every((selectedTag) =>
+          note.tags.some((noteTag) => noteTag.id === selectedTag.id)
+        )
+      );
+    }
+
+    setFilteredNotes(filtered); // Set filtered notes
   };
 
-  // Filter notes based on search title and selected tags
-  // const filteredNotes = notes.filter((note) => {
-  //   const matchesTitle = note.title
-  //     .toLowerCase()
-  //     .includes(searchTitle.toLowerCase());
-
-  //   const matchesTags =
-  //     selectedTags.length === 0 ||
-  //     selectedTags.every((tag) => note.tagIds.includes(tag.id));
-
-  //   return matchesTitle && matchesTags;
-  // });
+  // Re-filter notes whenever searchTitle, selectedTags, or notes change
+  useEffect(() => {
+    filterNotes();
+  }, [searchTitle, selectedTags, notes]);
 
   return (
     <div className="min-h-screen w-screen p-6 md:p-10">
@@ -75,13 +97,12 @@ const ShowNotes: React.FC = () => {
 
       {/* Search Section: Input field and Tags Dropdown */}
       <div className="flex flex-col md:flex-row gap-4 mb-8 w-full">
-        {/* Common width for both inputs */}
+        {/* Search by Title */}
         <div className="w-full md:w-1/2">
-          {/* Search by Title */}
           <input
             type="text"
             value={searchTitle}
-            onChange={handleSearchTitle}
+            onChange={(e) => setSearchTitle(e.target.value)}
             className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-400"
             placeholder="Search by title"
           />
@@ -93,6 +114,7 @@ const ShowNotes: React.FC = () => {
             isMulti
             value={selectedTags}
             onChange={(newTags) => setSelectedTags(newTags)}
+            options={availableTags} // Set fetched tags as options in the dropdown
             placeholder="Search by tags"
             classNamePrefix="select"
             styles={{
@@ -111,25 +133,21 @@ const ShowNotes: React.FC = () => {
 
       {/* Notes List with Responsive Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {notes.map((note) => (
+        {filteredNotes.map((note) => (
           <div
             key={note.id}
             className="p-4 bg-white rounded-lg shadow-lg border border-gray-300"
           >
             <h3 className="text-2xl font-semibold mb-2">{note.title}</h3>
             <div className="flex flex-wrap gap-2 mb-2">
-              {note.tags.map((tag) => {
-                return (
-                  tag && (
-                    <span
-                      key={tag.id}
-                      className="bg-blue-200 text-blue-800 px-2 py-1 rounded"
-                    >
-                      {tag.label}
-                    </span>
-                  )
-                );
-              })}
+              {note.tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="bg-blue-200 text-blue-800 px-2 py-1 rounded"
+                >
+                  {tag.label}
+                </span>
+              ))}
             </div>
             <p className="text-gray-700">
               {note.description.substring(0, 50)}...
